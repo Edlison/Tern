@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible Tern problem.
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Tern version, macOS version, Mac architecture, and affected agent version.
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Session source
+      options:
+        - Local Codex
+        - Local Claude Code
+        - Claude cloud / Remote Control
+        - SSH host
+        - Grok Bot cache
+        - Not related to monitoring
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps, expected behavior, and actual behavior
+      description: Remove private prompts, summaries, paths, hostnames and credentials before attaching diagnostics.
+    validations:
+      required: true
