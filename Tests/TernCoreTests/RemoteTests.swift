@@ -155,8 +155,24 @@ final class BrowserCacheDecoderTests: XCTestCase {
     func vi(_ n: Int) -> [UInt8] { var n = n, result: [UInt8] = []; repeat { let b = n & 127; n >>= 7; result.append(UInt8(b | (n > 0 ? 128 : 0))) } while n > 0; return result }
     func encode(_ value: Any) -> [UInt8] {
         if let s = value as? String { let bytes = Array(s.utf8); return [83] + vi(bytes.count) + bytes }
-        if let d = value as? [String: Any] { return [111] + d.keys.sorted().flatMap { encode($0) + encode(d[$0]!) } + [123] + vi(d.count) }
-        if let a = value as? [Any] { return [65] + vi(a.count) + a.flatMap(encode) + [36, 0] + vi(a.count) }
+        if let d = value as? [String: Any] {
+            var result: [UInt8] = [111]
+            for key in d.keys.sorted() {
+                result.append(contentsOf: encode(key))
+                result.append(contentsOf: encode(d[key]!))
+            }
+            result.append(contentsOf: [123])
+            result.append(contentsOf: vi(d.count))
+            return result
+        }
+        if let a = value as? [Any] {
+            var result: [UInt8] = [65]
+            result.append(contentsOf: vi(a.count))
+            for item in a { result.append(contentsOf: encode(item)) }
+            result.append(contentsOf: [36, 0])
+            result.append(contentsOf: vi(a.count))
+            return result
+        }
         if let n = value as? Int { return [85] + vi(n) }
         return [48]
     }
@@ -170,7 +186,16 @@ final class BrowserCacheDecoderTests: XCTestCase {
     }
     func testReferencesLatin1UTF16AndNumericObjectKeys() throws {
         let string: [UInt8] = [34,1,233]
-        let raw: [UInt8] = [255,16,111] + encode("a") + [111] + encode("b") + string + [123,1] + encode("copy") + [94,1] + encode("wide") + [99,2,45,78] + [123,3]
+        var raw: [UInt8] = [255,16,111]
+        raw.append(contentsOf: encode("a"))
+        raw.append(contentsOf: [111])
+        raw.append(contentsOf: encode("b"))
+        raw.append(contentsOf: string)
+        raw.append(contentsOf: [123,1])
+        raw.append(contentsOf: encode("copy"))
+        raw.append(contentsOf: [94,1])
+        raw.append(contentsOf: encode("wide"))
+        raw.append(contentsOf: [99,2,45,78,123,3])
         let root = try BrowserCacheDecoder.decode(Data(raw))
         XCTAssertEqual((root["copy"] as? [String: Any])?["b"] as? String, "é"); XCTAssertEqual(root["wide"] as? String, "中")
     }
